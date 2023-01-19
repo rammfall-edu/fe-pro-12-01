@@ -3,12 +3,15 @@ import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material';
 import { Form, Formik } from 'formik';
 import { useNavigate } from 'react-router-dom';
 
-import { httpClient } from '../api';
+import { httpClient, loginUser, registerUser } from '../api';
 import * as yup from 'yup';
 import { Input } from '../components/Input';
+import { ROUTES } from '../constants';
+import { useAuth } from '../providers/Storage/auth.hooks';
 
 export const RegistrationPage = () => {
   const navigate = useNavigate();
+  const { saveAuthInfo } = useAuth();
 
   return (
     <Box sx={{ marginTop: 2 }}>
@@ -25,10 +28,12 @@ export const RegistrationPage = () => {
               }}
               onSubmit={async (values, formikHelpers) => {
                 try {
-                  const result = await httpClient.post('/user', values);
+                  await registerUser(values);
+                  const { data } = await loginUser(values);
 
+                  saveAuthInfo(data);
                   formikHelpers.resetForm();
-                  navigate('/login');
+                  navigate(ROUTES.dashboard);
                 } catch (err) {
                   const {
                     response: { data },

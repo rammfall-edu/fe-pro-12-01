@@ -1,25 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+  Dialog,
+  DialogTitle,
+} from '@mui/material';
+import { Delete, Edit } from '@mui/icons-material';
 import { Form, Formik } from 'formik';
 import * as yup from 'yup';
 import { Input } from '../components/Input';
-import { httpClient } from '../api';
+import {
+  createProject,
+  deleteProject,
+  getProjects,
+  updateProject,
+} from '../api';
 import { format } from 'date-fns';
+import { ModalConfirm } from '../components/ModalConfirm';
+import { form } from '../constants/form';
+import { ModalEditProject } from '../components/ModalEditProject';
 
-export const ProjectsPage = ({ authInfo }) => {
+export const ProjectsPage = () => {
   const [projects, setProjects] = useState([]);
+  const [modal, setModal] = useState({ isOpen: false, title: '' });
+  const [editModal, setEditModal] = useState({
+    isOpen: false,
+    title: '',
+    data: {},
+    handleConfirm: () => {},
+  });
 
   useEffect(() => {
-    httpClient
-      .get('/project/', {
-        headers: {
-          sessionid: authInfo.sessionId,
-          accesstoken: authInfo.accessToken,
-        },
-      })
-      .then(({ data }) => {
-        setProjects(data.projects);
-      });
+    getProjects().then(({ data }) => {
+      setProjects(data.projects);
+    });
   }, []);
 
   return (
@@ -30,12 +48,7 @@ export const ProjectsPage = ({ authInfo }) => {
             <Formik
               initialValues={{ title: '' }}
               onSubmit={async (values, formikHelpers) => {
-                const result = await httpClient.post('/project/', values, {
-                  headers: {
-                    sessionid: authInfo.sessionId,
-                    accesstoken: authInfo.accessToken,
-                  },
-                });
+                const result = await createProject(values);
 
                 setProjects((prevState) => {
                   return [...prevState, result.data.project];
@@ -43,9 +56,7 @@ export const ProjectsPage = ({ authInfo }) => {
 
                 formikHelpers.resetForm();
               }}
-              validationSchema={yup.object().shape({
-                title: yup.string().label('Title').min(6).max(20).required(),
-              })}
+              validationSchema={form.projectsValidationSchema}
             >
               <Form>
                 <Stack spacing={2}>
@@ -75,11 +86,77 @@ export const ProjectsPage = ({ authInfo }) => {
                 <Typography component="p" variant="h5">
                   {format(new Date(createdAt), 'yyyy-MM-dd')}
                 </Typography>
+                <Edit
+                  onClick={() => {
+                    setEditModal({
+                      isOpen: true,
+                      data: { title },
+                      handleConfirm: async (values, helpers) => {
+                        console.log(values, helpers);
+                        await updateProject(id, values);
+
+                        setProjects((prevState) => {
+                          return prevState.map((project) => {
+                            if (project.id === id) {
+                              return {
+                                ...project,
+                                title: values.title,
+                              };
+                            }
+
+                            return project;
+                          });
+                        });
+                        setEditModal((prevState) => ({
+                          ...prevState,
+                          isOpen: false,
+                        }));
+                      },
+                      title: `Update ${title}`,
+                    });
+                  }}
+                />
+                <Delete
+                  onClick={() =>
+                    setModal({
+                      isOpen: true,
+                      title: `Are you sure to delete ${title}`,
+                      handleConfirm: async () => {
+                        await deleteProject(id);
+                        setProjects((prevState) =>
+                          prevState.filter((project) => project.id !== id)
+                        );
+                      },
+                    })
+                  }
+                />
               </Grid>
             );
           })}
         </Grid>
       </Container>
+      <ModalConfirm
+        isOpen={modal.isOpen}
+        title={modal.title}
+        handleClose={() => {
+          setModal((prevState) => {
+            return {
+              ...prevState,
+              isOpen: false,
+            };
+          });
+        }}
+        handleConfirm={modal.handleConfirm}
+      />
+      <ModalEditProject
+        isOpen={editModal.isOpen}
+        title={editModal.title}
+        data={editModal.data}
+        handleClose={() => {
+          setEditModal((prevState) => ({ ...prevState, isOpen: false }));
+        }}
+        handleConfirm={editModal.handleConfirm}
+      />
     </Box>
   );
 };

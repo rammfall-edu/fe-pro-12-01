@@ -1,21 +1,17 @@
-import React from 'react';
-import {
-  Box,
-  Button,
-  Container,
-  Grid,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import React, { useContext } from 'react';
+import { Box, Button, Container, Grid, Stack, Typography } from '@mui/material';
 import { Form, Formik } from 'formik';
 import * as yup from 'yup';
 
 import { Input } from '../components/Input';
-import axios from 'axios';
-import { httpClient } from '../api';
+import { httpClient, loginUser } from '../api';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../providers/Storage/auth.hooks';
 
-export const LoginPage = ({ saveAuthInfo }) => {
+export const LoginPage = () => {
+  const navigate = useNavigate();
+  const { saveAuthInfo } = useAuth();
+
   return (
     <Box sx={{ marginTop: 2 }}>
       <Container>
@@ -26,14 +22,12 @@ export const LoginPage = ({ saveAuthInfo }) => {
               initialValues={{ email: '', password: '' }}
               onSubmit={async (values, formikHelpers) => {
                 try {
-                  const result = await httpClient.post(
-                    '/user/session/start',
-                    values
-                  );
+                  const { data } = await loginUser(values);
 
-                  saveAuthInfo(result.data);
+                  saveAuthInfo(data);
 
                   formikHelpers.resetForm();
+                  navigate('/dashboard');
                 } catch (err) {
                   const {
                     response: { data },

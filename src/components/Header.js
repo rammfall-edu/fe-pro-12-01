@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Box, AppBar, Toolbar, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { StorageContext } from '../providers/Storage';
+import { Brightness4 } from '@mui/icons-material';
+import { ColorMode } from '../providers/ColorMode';
+import { useAuth } from '../providers/Storage/auth.hooks';
 
-export const Header = ({ isLoggedIn, handleLogout }) => {
+export const Header = () => {
   const navigate = useNavigate();
+  const { toggleColorMode } = useContext(ColorMode);
+  const { logout, isLoggedIn } = useAuth();
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
@@ -18,7 +25,7 @@ export const Header = ({ isLoggedIn, handleLogout }) => {
               </Button>
               <Button
                 onClick={() => {
-                  handleLogout();
+                  logout();
                   navigate('/login');
                 }}
                 color="inherit"
@@ -36,6 +43,7 @@ export const Header = ({ isLoggedIn, handleLogout }) => {
               </Button>
             </>
           )}
+          <Brightness4 onClick={toggleColorMode} />
         </Toolbar>
       </AppBar>
     </Box>
